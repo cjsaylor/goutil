@@ -20,8 +20,8 @@ type Cache struct {
 	queue      *list.List
 	lookup     map[interface{}]*list.Element
 	capacity   int
-	mutex      *sync.Mutex
 	onEviction EvictionCallback
+	mutex      *sync.Mutex
 }
 
 // NewCache creates an instance of an LRU cache with fixed capacity.
@@ -30,8 +30,8 @@ func NewCache(capacity int, onEviction EvictionCallback) *Cache {
 		queue:      list.New(),
 		lookup:     make(map[interface{}]*list.Element, capacity),
 		capacity:   capacity,
-		mutex:      &sync.Mutex{},
 		onEviction: onEviction,
+		mutex:      &sync.Mutex{},
 	}
 	return &cache
 }
@@ -52,6 +52,7 @@ func (c *Cache) Set(key, value interface{}) {
 			key:   key,
 			value: value,
 		}
+		return
 	}
 	item := c.queue.PushFront(&entry{
 		key:   key,
@@ -59,13 +60,15 @@ func (c *Cache) Set(key, value interface{}) {
 	})
 	c.lookup[key] = item
 	if c.queue.Len() > c.capacity {
-		c.RemoveOldest()
+		c.removeOldest()
 	}
 }
 
 // Get will retrieve a value by key.
 // This will bump the entry as it was "recently" used.
 func (c *Cache) Get(key interface{}) (interface{}, bool) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if item, ok := c.lookup[key]; ok {
 		c.queue.MoveToFront(item)
 		return item.Value, true
@@ -75,6 +78,8 @@ func (c *Cache) Get(key interface{}) (interface{}, bool) {
 
 // Remove an entry from the LRU cache
 func (c *Cache) Remove(key interface{}) (interface{}, bool) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if item, ok := c.lookup[key]; ok {
 		c.queue.Remove(item)
 		delete(c.lookup, key)
@@ -85,6 +90,12 @@ func (c *Cache) Remove(key interface{}) (interface{}, bool) {
 
 // RemoveOldest will remove the oldest entry from the LRU cache.
 func (c *Cache) RemoveOldest() (interface{}, bool) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.removeOldest()
+}
+
+func (c *Cache) removeOldest() (interface{}, bool) {
 	if c.queue.Len() == 0 {
 		return nil, false
 	}
@@ -98,6 +109,8 @@ func (c *Cache) RemoveOldest() (interface{}, bool) {
 // ListKeys returns all keys in the LRU cache
 // It will return with the most recent entries first
 func (c *Cache) ListKeys() []interface{} {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	ret := make([]interface{}, c.queue.Len())
 	for i, item := 0, c.queue.Front(); item != nil; i, item = i+1, item.Next() {
 		ret[i] = item.Value.(*entry).key

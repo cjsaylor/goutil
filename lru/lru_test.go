@@ -14,7 +14,7 @@ func TestSet(t *testing.T) {
 	})
 	cache.Set("a", "foo")
 	cache.Set("b", "bar")
-	if _, ok := evictionEntries["a"]; !ok {
+	if val, ok := evictionEntries["a"]; !ok || val != "foo" {
 		t.Error("expected eviction of 'a', but didn't find it")
 	}
 }
@@ -24,6 +24,7 @@ func TestSetOverwriteAndBumpRecentlyUsed(t *testing.T) {
 	cache.Set("a", "foo")
 	cache.Set("b", "b")
 	cache.Set("a", "bar")
+	cache.Set("c", "in")
 	if _, ok := cache.Get("b"); ok {
 		t.Error("Expected 'b' to have been evicted after resetting")
 	}
