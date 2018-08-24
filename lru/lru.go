@@ -36,6 +36,11 @@ func NewCache(capacity int, onEviction EvictionCallback) *Cache {
 	return &cache
 }
 
+// Noop returns an eviction callback that is a no-op.
+func Noop() EvictionCallback {
+	return func(key, value interface{}) {}
+}
+
 // Set a key/value into the LRU cache.
 // This will evict the oldest entry if at the capacity limit.
 func (c *Cache) Set(key, value interface{}) {
