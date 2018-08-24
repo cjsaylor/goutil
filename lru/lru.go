@@ -94,3 +94,13 @@ func (c *Cache) RemoveOldest() (interface{}, bool) {
 	c.onEviction(tail.Value.(*entry).key, tail.Value.(*entry).value)
 	return tail.Value.(*entry).value, true
 }
+
+// ListKeys returns all keys in the LRU cache
+// It will return with the most recent entries first
+func (c *Cache) ListKeys() []interface{} {
+	ret := make([]interface{}, c.queue.Len())
+	for i, item := 0, c.queue.Front(); item != nil; i, item = i+1, item.Next() {
+		ret[i] = item.Value.(*entry).key
+	}
+	return ret
+}

@@ -1,6 +1,7 @@
 package lru_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/cjsaylor/goutil/lru"
@@ -19,7 +20,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestSetOverwriteAndBumpRecentlyUsed(t *testing.T) {
-	cache := lru.NewCache(2, func(key, value interface{}) {})
+	cache := lru.NewCache(2, lru.Noop())
 	cache.Set("a", "foo")
 	cache.Set("b", "b")
 	cache.Set("a", "bar")
@@ -53,7 +54,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	cache := lru.NewCache(1, func(key, value interface{}) {})
+	cache := lru.NewCache(1, lru.Noop())
 	cache.Set("a", "foo")
 	if res, ok := cache.Remove("a"); res.(string) != "foo" || !ok {
 		t.Error("Expected to return value removed")
@@ -64,11 +65,24 @@ func TestRemove(t *testing.T) {
 }
 
 func TestRemoveOldest(t *testing.T) {
-	cache := lru.NewCache(3, func(key, value interface{}) {})
+	cache := lru.NewCache(3, lru.Noop())
 	cache.Set("a", "a")
 	cache.Set("b", "b")
 	cache.Set("c", "c")
 	if res, ok := cache.RemoveOldest(); res.(string) != "a" || !ok {
 		t.Error("Expected to return 'a' entry after removal")
+	}
+}
+
+func TestListKeys(t *testing.T) {
+	cache := lru.NewCache(3, lru.Noop())
+	cache.Set("a", 1)
+	cache.Set("b", 2)
+	cache.Set("c", 3)
+	expected := []interface{}{"c", "b", "a"}
+	result := cache.ListKeys()
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Errorf("Expected %v got %v", expected, cache.ListKeys())
 	}
 }
